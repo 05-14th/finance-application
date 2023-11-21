@@ -32,6 +32,7 @@ class MyWindow(QWidget):
         login_button = QPushButton('Login', self)
         login_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         layout.addWidget(login_button)
+        login_button.clicked.connect(lambda: self.verify(username_input.text(), password_field.text()))
 
         signup_button = QPushButton('Sign up',self)
         signup_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -51,6 +52,16 @@ class MyWindow(QWidget):
         window.show()
         self.destroy()
 
+    def verify(self, username, password):
+        with open("Source/textdb.txt", "r") as users:
+            for user in users:
+                user = user.strip().split("~")
+                user = user[1::2]
+                if (username in user) and (password in user):
+                    print("Hit!")
+                    break
+                else:
+                    print("Account Not Found")
 
 class SignupWindow(QWidget):
     def __init__(self):
