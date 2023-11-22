@@ -53,12 +53,15 @@ class MyWindow(QWidget):
         self.destroy()
 
     def verify(self, username, password):
+        global window
         with open("Source/textdb.txt", "r") as users:
             for user in users:
                 user = user.strip().split("~")
                 user = user[1::2]
                 if (username in user) and (password in user):
-                    print("Hit!")
+                    window=MainWindow()
+                    window.show()
+                    self.destroy()
                     break
                 else:
                     print("Account Not Found")
@@ -133,6 +136,21 @@ class SignupWindow(QWidget):
                 print("Registration Completed!")
         else:
             print("Password does not match.")
+
+class MainWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle('BudgetBuddy: Expense Tracker App')
+
+        main_layout = QVBoxLayout()
+
+        self.setLayout(main_layout)
+
+    def resizeEvent(self, event):
+        # Adjust widget sizes or positions upon window resize (if needed)
+        pass
+
 
 def main():
     global window
