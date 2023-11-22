@@ -105,6 +105,7 @@ class SignupWindow(QWidget):
 
         reg_button = QPushButton('Register',self)
         reg_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        reg_button.clicked.connect(lambda: self.add_verification(fullname_field.text(), email_field.text(), new_username.text(), new_password.text(), confirm_password.text()))
         su_layout.addWidget(reg_button)
 
         back_button = QPushButton('Back to Sign In', self)
@@ -123,6 +124,15 @@ class SignupWindow(QWidget):
         window = MyWindow()
         window.show()
         self.destroy()
+
+    def add_verification(self, name, email, username, password, cpassword):
+        if(password == cpassword):
+            full_credentials = f"{name}~{email}~{username}~{password}\n"
+            with open("Source/signupdb.txt", "a") as new_user:
+                new_user.write(full_credentials)
+                print("Registration Completed!")
+        else:
+            print("Password does not match.")
 
 def main():
     global window
