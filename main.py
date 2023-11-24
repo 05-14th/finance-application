@@ -1,5 +1,5 @@
 import sys, time
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QPushButton, QWidget, QSizePolicy, QLineEdit, QFrame, QHBoxLayout, QComboBox, QDateEdit
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QPushButton, QWidget, QSizePolicy, QLineEdit, QFrame, QHBoxLayout, QComboBox, QDateEdit, QDialog, QTableWidget, QAbstractItemView, QTableWidgetItem
 from PyQt5.QtCore import Qt, QDate  # Import Qt module
 
 #Initialize Global Variables
@@ -146,27 +146,115 @@ class MainWindow(QWidget):
         #Button Sets
         button_frame = QFrame()
         button_frame.setFrameShape(QFrame.StyledPanel)
+        button_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
-        add_button = QPushButton("Add Expense", self)
+        add_button = QPushButton("Add Record", self)
         add_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        view_button = QPushButton("Show Record", self)
-        view_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        remove_button = QPushButton("Remove Expense", self)
+        add_button.clicked.connect(self.additionPopup)
+        remove_button = QPushButton("Remove Record", self)
         remove_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        generate_button = QPushButton("Generate Record", self)
+        generate_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         exit_button = QPushButton("Exit", self)
         exit_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         exit_button.clicked.connect(self.exit_)
 
         button_layout = QVBoxLayout()
         button_layout.addWidget(add_button)
-        button_layout.addWidget(view_button)
         button_layout.addWidget(remove_button)
+        button_layout.addWidget(generate_button)
         button_layout.addWidget(exit_button)
         button_frame.setLayout(button_layout)
 
         #Viewing Area
         viewing_frame = QFrame()
         viewing_frame.setFrameShape(QFrame.StyledPanel)
+        viewing_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        # Table View
+        table_view = QVBoxLayout()
+        self.default_row_count = 5
+        self.current_row_count = self.default_row_count
+
+        # Data Table
+        self.data_table = QTableWidget()
+        self.data_table.setRowCount(self.default_row_count)  # Set the initial number of rows to 0
+        self.data_table.setColumnCount(7)  # Set the number of columns
+        self.data_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        titles = ["Category", "Description", "Quantity", "Unit","Transaction Date", "Amount", "Payment Method"]
+        self.data_table.setHorizontalHeaderLabels(titles)
+        self.data_table.resizeColumnsToContents()
+        self.data_table.horizontalHeader().setStretchLastSection(True)
+        self.disable_editing()
+
+        #Edit Button
+        toggle_cells = QPushButton("Edit Mode")
+        toggle_cells.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        toggle_cells.clicked.connect(self.toggle_editing)
+
+        table_view.addWidget(self.data_table)
+        table_view.addWidget(toggle_cells)
+        viewing_frame.setLayout(table_view)
+
+        self.load_data_from_file(self.data_table, 'Source/data.txt', '~')
+
+        main_layout.addWidget(button_frame)
+        main_layout.addWidget(viewing_frame)
+        self.setLayout(main_layout)
+
+    def resizeEvent(self, event):
+        # Adjust widget sizes or positions upon window resize (if needed)
+        pass
+
+    def additionPopup(self):
+        dialog = AdditionModal()
+        dialog.setModal(True)  # Set the dialog as modal
+        dialog.exec_()
+
+    def exit_(self):
+        exit()
+
+    def set_table_rows(self, row_count):
+        self.data_table.setRowCount(row_count)
+
+    def load_data_from_file(self, table, filename, delimiter):
+        try:
+            with open(filename, 'r') as file:
+                lines = file.readlines()
+                num_rows = len(lines)
+                extra_rows = max(0, num_rows - self.default_row_count)
+                if extra_rows > 0:
+                    self.current_row_count += extra_rows
+                    self.set_table_rows(self.current_row_count)
+
+                for row, line in enumerate(lines):
+                    if row >= self.default_row_count:
+                        table.insertRow(row)
+                        self.current_row_count += 1
+                    line = line.strip()
+                    columns = line.split(delimiter)
+                    for column, text in enumerate(columns):
+                        item = QTableWidgetItem(text)
+                        table.setItem(row, column - 1, item)
+        except FileNotFoundError:
+            print(f"File '{filename}' not found.")
+
+    def disable_editing(self):
+        self.data_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+
+    def enable_editing(self):
+        self.data_table.setEditTriggers(QAbstractItemView.CurrentChanged)
+
+    def toggle_editing(self):
+        if self.data_table.editTriggers() == QAbstractItemView.NoEditTriggers:
+            self.enable_editing()
+        else:
+            self.disable_editing()
+
+class AdditionModal(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Add Expense")
 
         #Adding View
         adding_view = QVBoxLayout()
@@ -190,11 +278,17 @@ class MainWindow(QWidget):
         item_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         adding_view.addWidget(item_edit)
 
+        date_frame = QFrame();
+        date_layout = QHBoxLayout()
+        date_label = QLabel("Transaction Date: ")
         date_edit = QDateEdit()
         date_edit.setCalendarPopup(True)
         date_edit.setDate(QDate.currentDate())  # Set default date to current day
         date_edit.setDisplayFormat("yyyy-MM-dd")  # Set the display format of the date
-        adding_view.addWidget(date_edit)
+        date_layout.addWidget(date_label)
+        date_layout.addWidget(date_edit)
+        date_frame.setLayout(date_layout)
+        adding_view.addWidget(date_frame)
 
         amount_edit = QLineEdit()
         amount_edit.setPlaceholderText('Amount')
@@ -218,23 +312,7 @@ class MainWindow(QWidget):
         specify_pm.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         adding_view.addWidget(specify_pm)
 
-        #Records Preview
-
-
-
-        viewing_frame.setLayout(adding_view) #Default Frame
-        main_layout.addWidget(button_frame)
-        main_layout.addWidget(viewing_frame)
-
-        self.setLayout(main_layout)
-
-    def resizeEvent(self, event):
-        # Adjust widget sizes or positions upon window resize (if needed)
-        pass
-
-    def exit_(self):
-        exit()
-
+        self.setLayout(adding_view)
 
 def main():
     global window
@@ -246,3 +324,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
